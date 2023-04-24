@@ -15,7 +15,7 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
-var CACHEFILE string = filepath.Join(xdg.CacheHome, "rss2dayone.json")
+var CACHEFILE = filepath.Join(xdg.CacheHome, "rss2dayone.json") //nolint:gochecknoglobals
 
 func main() {
 	fp := gofeed.NewParser()
@@ -82,8 +82,7 @@ func processItem(item *gofeed.Item) {
 		log.Fatalf("Could not parse time of %s: %s", item.GUID, err)
 	}
 
-	err = invokeDayOne(markdown, os.Args[2], os.Args[3:], time)
-	if err != nil {
+	if err = invokeDayOne(markdown, os.Args[2], os.Args[3:], time); err != nil {
 		log.Fatalf("Failed invocation of dayone2: %s", err)
 	}
 }
@@ -100,9 +99,8 @@ func invokeDayOne(body string, journal string, tags []string, date time.Time) er
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
 
-	err := cmd.Run()
-	if err != nil {
-		return fmt.Errorf("failed to execute dayone2: %s", err)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to execute dayone2: %w", err)
 	}
 
 	log.Print(out.String())
@@ -122,8 +120,7 @@ func saveProcessedItemsList(processed *map[string]struct{}) {
 		log.Fatal("Error serialising seen data:", err)
 	}
 
-	err = os.WriteFile(CACHEFILE, data, 0o644)
-	if err != nil {
+	if err = os.WriteFile(CACHEFILE, data, 0o600); err != nil {
 		log.Fatal("Error writing seen data to file:", err)
 	}
 }
