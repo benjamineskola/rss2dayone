@@ -2,9 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
+	"time"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/adrg/xdg"
@@ -66,8 +70,6 @@ func loadProcessedItemsList() map[string]struct{} {
 }
 
 func processItem(item *gofeed.Item) {
-	log.Print("Title: ", item.Title)
-
 	converter := md.NewConverter("", true, nil)
 
 	markdown, err := converter.ConvertString(item.Description)
@@ -75,13 +77,38 @@ func processItem(item *gofeed.Item) {
 		log.Fatal(err)
 	}
 
-	log.Printf("Description: %s\n", markdown)
-	log.Printf("Link: %s\n", item.Link)
-	log.Printf("Published: %s\n", item.Published)
-
-	for n, ext := range item.Extensions["letterboxd"] {
-		log.Printf("%s\t%s\n", n, ext[0].Value)
+	time, err := time.Parse(time.RFC1123Z, item.Published)
+	if err != nil {
+		log.Fatalf("Could not parse time of %s: %s", item.GUID, err)
 	}
+
+	err = invokeDayOne(markdown, os.Args[2], os.Args[3:], time)
+	if err != nil {
+		log.Fatalf("Failed invocation of dayone2: %s", err)
+	}
+}
+
+func invokeDayOne(body string, journal string, tags []string, date time.Time) error {
+	cmdArgs := []string{"new", "--journal", journal, "--isoDate", date.Format("2006-01-02T15:04:05"), "--tags"}
+	cmdArgs = append(cmdArgs, tags...)
+	cmd := exec.Command("dayone2", cmdArgs...)
+	cmd.Stdin = strings.NewReader(body)
+
+	var out strings.Builder
+	cmd.Stdout = &out
+
+	var stderr strings.Builder
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to execute dayone2: %s", err)
+	}
+
+	log.Print(out.String())
+	log.Print(stderr.String())
+
+	return nil
 }
 
 func saveProcessedItemsList(processed *map[string]struct{}) {
