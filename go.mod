@@ -1,4 +1,4 @@
-module rss2dayone
+module github.com/benjamineskola/rss2dayone
 
 go 1.20
 
