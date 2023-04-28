@@ -153,6 +153,8 @@ func invokeDayOne(body string, journal string, tags []string, date time.Time, at
 
 	for _, i := range attachments {
 		cmdArgs = append(cmdArgs, "-a", i)
+
+		defer os.Remove(i)
 	}
 
 	cmd := exec.Command("dayone2", cmdArgs...)
