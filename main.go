@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -90,14 +92,69 @@ func processItem(item *gofeed.Item) {
 		}
 	}
 
-	if err = invokeDayOne(markdown, os.Args[2], os.Args[3:], postTime); err != nil {
+	attachmentUrls := []string{}
+	for _, enclosure := range item.Enclosures {
+		attachmentUrls = append(attachmentUrls, enclosure.URL)
+	}
+
+	for _, enclosure := range item.Extensions["media"]["content"] {
+		attachmentUrls = append(attachmentUrls, enclosure.Attrs["url"])
+	}
+
+	downloadDir := os.Getenv("TMPDIR")
+	if downloadDir == "" {
+		downloadDir = "/tmp"
+	}
+
+	attachmentFiles := []string{}
+
+	for _, url := range attachmentUrls {
+		resp, err := http.Get(url)
+		if err != nil {
+			log.Print("Error downloading attachment:", err)
+
+			continue
+		}
+
+		file, err := os.CreateTemp("", "tmpfile-")
+		if err != nil {
+			log.Print("Error downloading attachment:", err)
+
+			continue
+		}
+
+		defer file.Close()
+
+		_, err = io.Copy(file, resp.Body)
+		if err != nil {
+			log.Print("Error saving attachment file:", err)
+
+			continue
+		}
+
+		// a bit of a hack
+		os.Rename(file.Name(), file.Name()+".jpg")
+
+		attachmentFiles = append(attachmentFiles, file.Name()+".jpg")
+	}
+
+	if len(attachmentFiles) > 0 {
+		markdown += "\n\n[{attachment}]"
+	}
+
+	if err = invokeDayOne(markdown, os.Args[2], os.Args[3:], postTime, attachmentFiles); err != nil {
 		log.Fatalf("Failed invocation of dayone2: %s", err)
 	}
 }
 
-func invokeDayOne(body string, journal string, tags []string, date time.Time) error {
+func invokeDayOne(body string, journal string, tags []string, date time.Time, attachments []string) error {
 	cmdArgs := []string{"new", "--journal", journal, "--isoDate", date.Format("2006-01-02T15:04:05"), "--tags"}
 	cmdArgs = append(cmdArgs, tags...)
+
+	for _, i := range attachments {
+		cmdArgs = append(cmdArgs, "-a", i)
+	}
+
 	cmd := exec.Command("dayone2", cmdArgs...)
 	cmd.Stdin = strings.NewReader(body)
 
