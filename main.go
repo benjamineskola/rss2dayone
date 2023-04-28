@@ -18,6 +18,11 @@ import (
 var CACHEFILE = filepath.Join(xdg.CacheHome, "rss2dayone.json") //nolint:gochecknoglobals
 
 func main() {
+	if len(os.Args) < 3 {
+		fmt.Fprintf(os.Stderr, "Usage: %s <url> <journal> [tag...]\n", os.Args[0])
+		os.Exit(1)
+	}
+
 	fp := gofeed.NewParser()
 
 	feedURL := os.Args[1]
