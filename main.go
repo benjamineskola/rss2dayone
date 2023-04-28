@@ -77,7 +77,7 @@ func processItem(item *gofeed.Item) {
 		log.Fatal(err)
 	}
 
-	time, err := time.Parse(time.RFC1123Z, item.Published)
+	time, err := time.Parse("Mon, _2 Jan 2006 15:04:05 -0700", item.Published)
 	if err != nil {
 		log.Fatalf("Could not parse time of %s: %s", item.GUID, err)
 	}
