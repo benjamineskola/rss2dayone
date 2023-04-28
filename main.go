@@ -82,12 +82,15 @@ func processItem(item *gofeed.Item) {
 		log.Fatal(err)
 	}
 
-	time, err := time.Parse("Mon, _2 Jan 2006 15:04:05 -0700", item.Published)
+	postTime, err := time.Parse("Mon, _2 Jan 2006 15:04:05 -0700", item.Published)
 	if err != nil {
-		log.Fatalf("Could not parse time of %s: %s", item.GUID, err)
+		postTime, err = time.Parse(time.RFC3339, item.Published)
+		if err != nil {
+			log.Fatalf("Could not parse time of %s: %s", item.GUID, err)
+		}
 	}
 
-	if err = invokeDayOne(markdown, os.Args[2], os.Args[3:], time); err != nil {
+	if err = invokeDayOne(markdown, os.Args[2], os.Args[3:], postTime); err != nil {
 		log.Fatalf("Failed invocation of dayone2: %s", err)
 	}
 }
