@@ -111,7 +111,7 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 
 	attachmentFiles := []string{}
 
-	for _, url := range attachmentUrls {
+	for url := range attachmentUrls {
 		file, err := fetchAttachment(url, downloadDir)
 		if err != nil {
 			log.Print(err)
@@ -130,20 +130,21 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 	return nil
 }
 
-func findAttachments(item *gofeed.Item, body string) []string {
-	attachmentUrls := []string{}
+func findAttachments(item *gofeed.Item, body string) map[string]struct{} {
+	attachmentUrls := make(map[string]struct{})
+
 	for _, enclosure := range item.Enclosures {
-		attachmentUrls = append(attachmentUrls, enclosure.URL)
+		attachmentUrls[enclosure.URL] = struct{}{}
 	}
 
 	for _, enclosure := range item.Extensions["media"]["content"] {
-		attachmentUrls = append(attachmentUrls, enclosure.Attrs["url"])
+		attachmentUrls[enclosure.Attrs["url"]] = struct{}{}
 	}
 
 	embeddedImages := MarkdownImageRE.FindAllStringSubmatch(body, -1)
 	for _, match := range embeddedImages {
 		if len(match) > 1 && len(match[1]) > 0 {
-			attachmentUrls = append(attachmentUrls, match[1])
+			attachmentUrls[match[1]] = struct{}{}
 		}
 	}
 
