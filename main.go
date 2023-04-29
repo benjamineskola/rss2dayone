@@ -113,37 +113,9 @@ func processItem(item *gofeed.Item) error {
 	attachmentFiles := []string{}
 
 	for _, url := range attachmentUrls {
-		resp, err := http.Get(url)
+		file, err := fetchAttachment(url, downloadDir)
 		if err != nil {
-			log.Print("Error downloading attachment:", err)
-
-			continue
-		}
-
-		fileName := strings.ReplaceAll(url, "/", "-")
-		fileName = strings.ReplaceAll(fileName, ":", "-")
-		fileName, _, _ = strings.Cut(fileName, "?")
-
-		if !(strings.HasSuffix(fileName, ".jpg") ||
-			strings.HasSuffix(fileName, ".jpeg") ||
-			strings.HasSuffix(fileName, ".png")) {
-			fileName += ".jpg" // Not sure that Day One actually cares that this is right, but there has to be one
-		}
-
-		defer resp.Body.Close()
-
-		file, err := os.Create(downloadDir + "/" + fileName)
-		if err != nil {
-			log.Print("Error downloading attachment:", err)
-
-			continue
-		}
-
-		defer file.Close()
-
-		_, err = io.Copy(file, resp.Body)
-		if err != nil {
-			log.Print("Error saving attachment file:", err)
+			log.Print(err)
 
 			continue
 		}
@@ -160,6 +132,39 @@ func processItem(item *gofeed.Item) error {
 	}
 
 	return nil
+}
+
+func fetchAttachment(url, downloadDir string) (*os.File, error) {
+	resp, err := http.Get(url) //nolint:gosec,noctx
+	if err != nil {
+		return nil, fmt.Errorf("error downloading attachment: %w", err)
+	}
+
+	fileName := strings.ReplaceAll(url, "/", "-")
+	fileName = strings.ReplaceAll(fileName, ":", "-")
+	fileName, _, _ = strings.Cut(fileName, "?")
+
+	if !(strings.HasSuffix(fileName, ".jpg") ||
+		strings.HasSuffix(fileName, ".jpeg") ||
+		strings.HasSuffix(fileName, ".png")) {
+		fileName += ".jpg" // Not sure that Day One actually cares that this is right, but there has to be one
+	}
+
+	defer resp.Body.Close()
+
+	file, err := os.Create(downloadDir + "/" + fileName)
+	if err != nil {
+		return nil, fmt.Errorf("error downloading attachment: %w", err)
+	}
+
+	defer file.Close()
+
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error saving attachment file: %w", err)
+	}
+
+	return file, nil
 }
 
 func invokeDayOne(body string, journal string, tags []string, date time.Time, attachments []string) error {
