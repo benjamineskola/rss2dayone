@@ -126,6 +126,8 @@ func processItem(item *gofeed.Item) {
 			fileName += ".jpg" // Not sure that Day One actually cares that this is right, but there has to be one
 		}
 
+		defer resp.Body.Close()
+
 		file, err := os.Create(downloadDir + "/" + fileName)
 		if err != nil {
 			log.Print("Error downloading attachment:", err)
