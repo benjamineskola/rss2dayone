@@ -43,7 +43,11 @@ func main() {
 			continue
 		}
 
-		processItem(item)
+		if err := processItem(item); err != nil {
+			log.Print(err)
+
+			continue
+		}
 
 		processed[item.GUID] = struct{}{}
 		processedAny = true
@@ -76,7 +80,7 @@ func loadProcessedItemsList() map[string]struct{} {
 	return processed
 }
 
-func processItem(item *gofeed.Item) {
+func processItem(item *gofeed.Item) error {
 	converter := md.NewConverter("", true, nil)
 
 	markdown, err := converter.ConvertString(item.Description)
@@ -152,8 +156,10 @@ func processItem(item *gofeed.Item) {
 	}
 
 	if err = invokeDayOne(markdown, os.Args[2], os.Args[3:], postTime, attachmentFiles); err != nil {
-		log.Fatalf("Failed invocation of dayone2: %s", err)
+		return fmt.Errorf("failed invocation of dayone2: %w", err)
 	}
+
+	return nil
 }
 
 func invokeDayOne(body string, journal string, tags []string, date time.Time, attachments []string) error {
