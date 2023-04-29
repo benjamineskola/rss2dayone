@@ -105,19 +105,9 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 	title := item.Title
 
 	if item.Extensions["letterboxd"] != nil {
-		if len(item.Extensions["letterboxd"]["filmTitle"]) > 0 &&
-			len(item.Extensions["letterboxd"]["filmYear"]) > 0 {
-			title = fmt.Sprintf("%s (%s)",
-				item.Extensions["letterboxd"]["filmTitle"][0].Value,
-				item.Extensions["letterboxd"]["filmYear"][0].Value)
-		}
-
-		if len(item.Extensions["letterboxd"]["watchedDate"]) > 0 {
-			postTime, err = time.Parse("2006-01-02", item.Extensions["letterboxd"]["watchedDate"][0].Value)
-
-			if err != nil {
-				return fmt.Errorf("could not parse time of %s: %w", item.GUID, err)
-			}
+		title, postTime, err = handleLetterboxdExtensions(item, title, postTime)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -180,6 +170,26 @@ func fetchAttachment(url, downloadDir string) (*os.File, error) {
 	}
 
 	return file, nil
+}
+
+func handleLetterboxdExtensions(item *gofeed.Item, title string, postTime time.Time) (string, time.Time, error) {
+	if len(item.Extensions["letterboxd"]["filmTitle"]) > 0 &&
+		len(item.Extensions["letterboxd"]["filmYear"]) > 0 {
+		title = fmt.Sprintf("%s (%s)",
+			item.Extensions["letterboxd"]["filmTitle"][0].Value,
+			item.Extensions["letterboxd"]["filmYear"][0].Value)
+	}
+
+	if len(item.Extensions["letterboxd"]["watchedDate"]) > 0 {
+		var err error
+
+		postTime, err = time.Parse("2006-01-02", item.Extensions["letterboxd"]["watchedDate"][0].Value)
+		if err != nil {
+			return "", time.Time{}, fmt.Errorf("could not parse time of %s: %w", item.GUID, err)
+		}
+	}
+
+	return title, postTime, nil
 }
 
 func invokeDayOne(title, body string, journal string, tags []string, date time.Time, attachments []string) error {
