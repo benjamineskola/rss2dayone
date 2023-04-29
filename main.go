@@ -34,6 +34,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	downloadDir, err := os.MkdirTemp("", "rss2dayone-")
+	if err != nil {
+		log.Fatalf("Could not create temporary directory: %s", err)
+	}
+
+	defer os.Remove(downloadDir)
+
 	processedAny := false
 
 	processed := loadProcessedItemsList()
@@ -43,7 +50,7 @@ func main() {
 			continue
 		}
 
-		if err := processItem(item); err != nil {
+		if err := processItem(item, downloadDir); err != nil {
 			log.Print(err)
 
 			continue
@@ -80,7 +87,7 @@ func loadProcessedItemsList() map[string]struct{} {
 	return processed
 }
 
-func processItem(item *gofeed.Item) error {
+func processItem(item *gofeed.Item, downloadDir string) error {
 	converter := md.NewConverter("", true, nil)
 
 	markdown, err := converter.ConvertString(item.Description)
@@ -103,11 +110,6 @@ func processItem(item *gofeed.Item) error {
 
 	for _, enclosure := range item.Extensions["media"]["content"] {
 		attachmentUrls = append(attachmentUrls, enclosure.Attrs["url"])
-	}
-
-	downloadDir, err := os.MkdirTemp("", "rss2dayone-")
-	if err != nil {
-		log.Fatalf("Could not create temporary directory: %s", err)
 	}
 
 	attachmentFiles := []string{}
