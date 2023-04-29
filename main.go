@@ -116,7 +116,17 @@ func processItem(item *gofeed.Item) {
 			continue
 		}
 
-		file, err := os.CreateTemp("", "tmpfile-")
+		fileName := strings.ReplaceAll(url, "/", "-")
+		fileName = strings.ReplaceAll(fileName, ":", "-")
+		fileName, _, _ = strings.Cut(fileName, "?")
+
+		if !(strings.HasSuffix(fileName, ".jpg") ||
+			strings.HasSuffix(fileName, ".jpeg") ||
+			strings.HasSuffix(fileName, ".png")) {
+			fileName += ".jpg" // Not sure that Day One actually cares that this is right, but there has to be one
+		}
+
+		file, err := os.Create(downloadDir + "/" + fileName)
 		if err != nil {
 			log.Print("Error downloading attachment:", err)
 
@@ -132,10 +142,7 @@ func processItem(item *gofeed.Item) {
 			continue
 		}
 
-		// a bit of a hack
-		os.Rename(file.Name(), file.Name()+".jpg")
-
-		attachmentFiles = append(attachmentFiles, file.Name()+".jpg")
+		attachmentFiles = append(attachmentFiles, file.Name())
 	}
 
 	if len(attachmentFiles) > 0 {
