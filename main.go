@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -17,7 +18,10 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
-var CACHEFILE = filepath.Join(xdg.CacheHome, "rss2dayone.json") //nolint:gochecknoglobals
+var (
+	CACHEFILE       = filepath.Join(xdg.CacheHome, "rss2dayone.json") //nolint:gochecknoglobals
+	MarkdownImageRE = regexp.MustCompile(`!\[\]\(([^)]+)\)`)
+)
 
 func main() {
 	if len(os.Args) < 3 {
@@ -87,7 +91,7 @@ func loadProcessedItemsList() map[string]struct{} {
 	return processed
 }
 
-func processItem(item *gofeed.Item, downloadDir string) error {
+func processItem(item *gofeed.Item, downloadDir string) error { //nolint:cyclop
 	converter := md.NewConverter("", true, nil)
 
 	markdown, err := converter.ConvertString(item.Description)
@@ -110,6 +114,13 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 
 	for _, enclosure := range item.Extensions["media"]["content"] {
 		attachmentUrls = append(attachmentUrls, enclosure.Attrs["url"])
+	}
+
+	embeddedImages := MarkdownImageRE.FindAllStringSubmatch(markdown, -1)
+	for _, match := range embeddedImages {
+		if len(match) > 1 && len(match[1]) > 0 {
+			attachmentUrls = append(attachmentUrls, match[1])
+		}
 	}
 
 	attachmentFiles := []string{}
