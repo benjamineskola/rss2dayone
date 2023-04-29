@@ -20,9 +20,11 @@ Requires the Day One app to be installed, and the command-line tool `dayone2` to
 rss2dayone <url> <journal> [tag...]
 ```
 
-## Not yet implemented
+## Features in progress/done
 
-- [ ] Attachment support
+- [x] Attachment support
 - [ ] Concurrency (though it may be that Day One's database is the bottleneck anyway)
-- [ ] Special cases for particular feeds: Mastodon, for example
-  - Ideally I'd do this in an extensible manner rather than hardcoding every feed I come across.
+- Special cases for particular feeds:
+  - [x] [Letterboxd](https://letterboxd.com)
+  - [ ] Mastodon
+  - [ ] an extensible manner rather than hardcoding every feed
