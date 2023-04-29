@@ -2,7 +2,7 @@
 
 Reads an RSS (or Atom) feed. Adds every post to your [Day One](https://dayoneapp.com) journal.
 
-Based on a [python version](https://github.com/benjamineskola/scripts/blob/main/rss2dayone.py) that's getting a little unwieldy.
+Based on a [python version](https://github.com/benjamineskola/scripts/blob/455cc5026a438c6156249c5cf01432a16dc86b29/rss2dayone.py) that got a little unwieldy.
 
 ## Installation
 
