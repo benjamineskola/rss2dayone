@@ -1,27 +1,22 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
-	"github.com/adrg/xdg"
+	"github.com/benjamineskola/rss2dayone/cache"
 	"github.com/mmcdole/gofeed"
 )
 
-var (
-	CACHEFILE       = filepath.Join(xdg.CacheHome, "rss2dayone.json") //nolint:gochecknoglobals
-	MarkdownImageRE = regexp.MustCompile(`!\[\]\(([^)]+)\)`)
-)
+var MarkdownImageRE = regexp.MustCompile(`!\[\]\(([^)]+)\)`)
 
 func main() {
 	if len(os.Args) < 3 {
@@ -47,10 +42,13 @@ func main() {
 
 	processedAny := false
 
-	processed := loadProcessedItemsList()
+	processed, err := cache.Init()
+	if err != nil {
+		log.Panic("Could not load seen items cache: ", err)
+	}
+
 	for _, item := range feed.Items {
-		_, isPresent := processed[item.GUID]
-		if isPresent {
+		if processed.Contains(item.GUID) {
 			continue
 		}
 
@@ -60,35 +58,16 @@ func main() {
 			continue
 		}
 
-		processed[item.GUID] = struct{}{}
+		processed.Add(item.GUID)
+
 		processedAny = true
 	}
 
 	if processedAny {
-		saveProcessedItemsList(&processed)
-	}
-}
-
-func loadProcessedItemsList() map[string]struct{} {
-	// for compatibility with the python version this is saved as a list, but
-	// the go code wants it as a map for efficiency: O(1) instead of O(n)
-	processedList := make([]string, 0)
-
-	data, err := os.ReadFile(CACHEFILE)
-	if err == nil {
-		err = json.Unmarshal(data, &processedList)
-		if err != nil {
-			log.Fatal("Error decoding processed map:", err)
+		if err = processed.Save(); err != nil {
+			log.Panic("Failed to save seen items cache: ", err)
 		}
 	}
-
-	processed := make(map[string]struct{})
-	for _, i := range processedList {
-		// log.Print("seen: ", i)
-		processed[i] = struct{}{}
-	}
-
-	return processed
 }
 
 func processItem(item *gofeed.Item, downloadDir string) error {
@@ -235,20 +214,4 @@ func invokeDayOne(title, body string, journal string, tags []string, date time.T
 	log.Print(stderr.String())
 
 	return nil
-}
-
-func saveProcessedItemsList(processed *map[string]struct{}) {
-	processedList := make([]string, 0)
-	for i := range *processed {
-		processedList = append(processedList, i)
-	}
-
-	data, err := json.MarshalIndent(processedList, "", "  ")
-	if err != nil {
-		log.Fatal("Error serialising seen data:", err)
-	}
-
-	if err = os.WriteFile(CACHEFILE, data, 0o600); err != nil {
-		log.Fatal("Error writing seen data to file:", err)
-	}
 }
