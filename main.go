@@ -105,9 +105,9 @@ func processItem(item *gofeed.Item) error {
 		attachmentUrls = append(attachmentUrls, enclosure.Attrs["url"])
 	}
 
-	downloadDir := os.Getenv("TMPDIR")
-	if downloadDir == "" {
-		downloadDir = "/tmp"
+	downloadDir, err := os.MkdirTemp("", "rss2dayone-")
+	if err != nil {
+		log.Fatalf("Could not create temporary directory: %s", err)
 	}
 
 	attachmentFiles := []string{}
