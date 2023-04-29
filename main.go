@@ -91,7 +91,7 @@ func loadProcessedItemsList() map[string]struct{} {
 	return processed
 }
 
-func processItem(item *gofeed.Item, downloadDir string) error { //nolint:cyclop
+func processItem(item *gofeed.Item, downloadDir string) error {
 	converter := md.NewConverter("", true, nil)
 
 	markdown, err := converter.ConvertString(item.Description)
@@ -107,21 +107,7 @@ func processItem(item *gofeed.Item, downloadDir string) error { //nolint:cyclop
 		}
 	}
 
-	attachmentUrls := []string{}
-	for _, enclosure := range item.Enclosures {
-		attachmentUrls = append(attachmentUrls, enclosure.URL)
-	}
-
-	for _, enclosure := range item.Extensions["media"]["content"] {
-		attachmentUrls = append(attachmentUrls, enclosure.Attrs["url"])
-	}
-
-	embeddedImages := MarkdownImageRE.FindAllStringSubmatch(markdown, -1)
-	for _, match := range embeddedImages {
-		if len(match) > 1 && len(match[1]) > 0 {
-			attachmentUrls = append(attachmentUrls, match[1])
-		}
-	}
+	attachmentUrls := findAttachments(item, markdown)
 
 	attachmentFiles := []string{}
 
@@ -142,6 +128,26 @@ func processItem(item *gofeed.Item, downloadDir string) error { //nolint:cyclop
 	}
 
 	return nil
+}
+
+func findAttachments(item *gofeed.Item, body string) []string {
+	attachmentUrls := []string{}
+	for _, enclosure := range item.Enclosures {
+		attachmentUrls = append(attachmentUrls, enclosure.URL)
+	}
+
+	for _, enclosure := range item.Extensions["media"]["content"] {
+		attachmentUrls = append(attachmentUrls, enclosure.Attrs["url"])
+	}
+
+	embeddedImages := MarkdownImageRE.FindAllStringSubmatch(body, -1)
+	for _, match := range embeddedImages {
+		if len(match) > 1 && len(match[1]) > 0 {
+			attachmentUrls = append(attachmentUrls, match[1])
+		}
+	}
+
+	return attachmentUrls
 }
 
 func fetchAttachment(url, downloadDir string) (*os.File, error) {
