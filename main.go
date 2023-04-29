@@ -123,6 +123,7 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 		}
 
 		attachmentFiles = append(attachmentFiles, file.Name())
+		markdown = strings.ReplaceAll(markdown, "![]("+url+")", "")
 	}
 
 	if len(attachmentFiles) > 0 {
