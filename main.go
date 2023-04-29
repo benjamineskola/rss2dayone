@@ -130,7 +130,7 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 		markdown += "\n\n[{attachment}]"
 	}
 
-	if err = invokeDayOne(markdown, os.Args[2], os.Args[3:], postTime, attachmentFiles); err != nil {
+	if err = invokeDayOne(item.Title, markdown, os.Args[2], os.Args[3:], postTime, attachmentFiles); err != nil {
 		return fmt.Errorf("failed invocation of dayone2: %w", err)
 	}
 
@@ -170,7 +170,7 @@ func fetchAttachment(url, downloadDir string) (*os.File, error) {
 	return file, nil
 }
 
-func invokeDayOne(body string, journal string, tags []string, date time.Time, attachments []string) error {
+func invokeDayOne(title, body string, journal string, tags []string, date time.Time, attachments []string) error {
 	cmdArgs := []string{"new", "--journal", journal, "--isoDate", date.Format("2006-01-02T15:04:05"), "--tags"}
 	cmdArgs = append(cmdArgs, tags...)
 
@@ -181,7 +181,7 @@ func invokeDayOne(body string, journal string, tags []string, date time.Time, at
 	}
 
 	cmd := exec.Command("dayone2", cmdArgs...)
-	cmd.Stdin = strings.NewReader(body)
+	cmd.Stdin = strings.NewReader("# " + title + "\n" + body)
 
 	var out strings.Builder
 	cmd.Stdout = &out
