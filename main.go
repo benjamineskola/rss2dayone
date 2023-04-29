@@ -176,12 +176,19 @@ func invokeDayOne(title, body string, journal string, tags []string, date time.T
 		defer os.Remove(i)
 	}
 
-	if len(attachments) > 0 {
-		body = "[{attachment}]\n" + body
+	post := ""
+	if len(title) > 0 {
+		post += "# " + title + "\n"
 	}
 
+	if len(attachments) > 0 {
+		post += "[{attachment}]\n"
+	}
+
+	post += body
+
 	cmd := exec.Command("dayone2", cmdArgs...)
-	cmd.Stdin = strings.NewReader("# " + title + "\n" + body)
+	cmd.Stdin = strings.NewReader(post)
 
 	var out strings.Builder
 	cmd.Stdout = &out
