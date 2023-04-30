@@ -15,12 +15,16 @@ type Cache struct {
 }
 
 func Init() (*Cache, error) {
+	return InitWithPath(filepath.Join(xdg.CacheHome, "rss2dayone.json"))
+}
+
+func InitWithPath(file string) (*Cache, error) {
 	idList := make([]string, 0)
 	idSet := make(map[string]struct{})
 
 	cache := Cache{
 		ids:  &idSet,
-		file: filepath.Join(xdg.CacheHome, "rss2dayone.json"),
+		file: file,
 	}
 
 	data, err := os.ReadFile(cache.file)
