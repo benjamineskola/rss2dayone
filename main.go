@@ -80,15 +80,17 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 		log.Fatal(err)
 	}
 
+	post.body = body
+
 	if err = post.SetDate(item.Published); err != nil {
 		return err
 	}
 
-	attachmentUrls := findAttachments(item, body)
+	post.FindAttachments(item)
 
 	attachmentFiles := []string{}
 
-	for url := range attachmentUrls {
+	for url := range *post.AttachmentUrls {
 		file, err := fetchAttachment(url, downloadDir)
 		if err != nil {
 			log.Print(err)
@@ -97,11 +99,10 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 		}
 
 		attachmentFiles = append(attachmentFiles, file.Name())
-		body = strings.ReplaceAll(body, "![]("+url+")", "")
+		post.body = strings.ReplaceAll(post.body, "![]("+url+")", "")
 	}
 
 	post.title = item.Title
-	post.body = body
 
 	if item.Extensions["letterboxd"] != nil {
 		post.title, *post.date, err = handleLetterboxdExtensions(item, post.title, *post.date)
@@ -110,32 +111,11 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 		}
 	}
 
-	if err = invokeDayOne(post.title, body, os.Args[2], os.Args[3:], *post.date, attachmentFiles); err != nil {
+	if err = invokeDayOne(post.title, post.body, os.Args[2], os.Args[3:], *post.date, attachmentFiles); err != nil {
 		return fmt.Errorf("failed invocation of dayone2: %w", err)
 	}
 
 	return nil
-}
-
-func findAttachments(item *gofeed.Item, body string) map[string]struct{} {
-	attachmentUrls := make(map[string]struct{})
-
-	for _, enclosure := range item.Enclosures {
-		attachmentUrls[enclosure.URL] = struct{}{}
-	}
-
-	for _, enclosure := range item.Extensions["media"]["content"] {
-		attachmentUrls[enclosure.Attrs["url"]] = struct{}{}
-	}
-
-	embeddedImages := MarkdownImageRE.FindAllStringSubmatch(body, -1)
-	for _, match := range embeddedImages {
-		if len(match) > 1 && len(match[1]) > 0 {
-			attachmentUrls[match[1]] = struct{}{}
-		}
-	}
-
-	return attachmentUrls
 }
 
 func fetchAttachment(url, downloadDir string) (*os.File, error) {
