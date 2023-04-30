@@ -95,7 +95,7 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 		}
 	}
 
-	if err = invokeDayOne(post.title, post.body, os.Args[2], os.Args[3:], *post.date, *post.attachmentFiles); err != nil {
+	if err = invokeDayOne(&post, os.Args[2], os.Args[3:]); err != nil {
 		return fmt.Errorf("failed invocation of dayone2: %w", err)
 	}
 
@@ -122,29 +122,29 @@ func handleLetterboxdExtensions(item *gofeed.Item, title string, postTime time.T
 	return title, postTime, nil
 }
 
-func invokeDayOne(title, body string, journal string, tags []string, date time.Time, attachments []string) error {
-	cmdArgs := []string{"new", "--journal", journal, "--isoDate", date.Format("2006-01-02T15:04:05"), "--tags"}
+func invokeDayOne(post *Post, journal string, tags []string) error {
+	cmdArgs := []string{"new", "--journal", journal, "--isoDate", post.date.Format("2006-01-02T15:04:05"), "--tags"}
 	cmdArgs = append(cmdArgs, tags...)
 
-	for _, i := range attachments {
+	for _, i := range *post.AttachmentFiles {
 		cmdArgs = append(cmdArgs, "-a", i)
 
 		defer os.Remove(i)
 	}
 
-	post := ""
-	if len(title) > 0 {
-		post += "# " + title + "\n"
+	body := ""
+	if len(post.title) > 0 {
+		body += "# " + post.title + "\n"
 	}
 
-	if len(attachments) > 0 {
-		post += "[{attachment}]\n"
+	if len(*post.AttachmentFiles) > 0 {
+		body += "[{attachment}]\n"
 	}
 
-	post += body
+	body += post.body
 
 	cmd := exec.Command("dayone2", cmdArgs...)
-	cmd.Stdin = strings.NewReader(post)
+	cmd.Stdin = strings.NewReader(body)
 
 	var out strings.Builder
 	cmd.Stdout = &out

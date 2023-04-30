@@ -18,7 +18,7 @@ type Post struct {
 	date  *time.Time
 
 	attachmentUrls  *map[string]struct{}
-	attachmentFiles *[]string
+	AttachmentFiles *[]string
 }
 
 func (p *Post) SetDate(date string) error {
@@ -57,7 +57,7 @@ func (p *Post) FindAttachments(item *gofeed.Item) {
 
 func (p *Post) FetchAttachments(downloadDir string) {
 	a := []string{}
-	p.attachmentFiles = &a
+	p.AttachmentFiles = &a
 
 	for url := range *p.attachmentUrls {
 		file, err := fetchAttachment(url, downloadDir)
@@ -67,7 +67,7 @@ func (p *Post) FetchAttachments(downloadDir string) {
 			continue
 		}
 
-		*p.attachmentFiles = append(*p.attachmentFiles, file.Name())
+		*p.AttachmentFiles = append(*p.AttachmentFiles, file.Name())
 		p.body = strings.ReplaceAll(p.body, "![]("+url+")", "")
 	}
 }
