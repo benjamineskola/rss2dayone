@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/mmcdole/gofeed"
 )
 
@@ -19,6 +20,36 @@ type Post struct {
 
 	attachmentUrls  *map[string]struct{}
 	AttachmentFiles *[]string
+}
+
+func NewPost(item *gofeed.Item, downloadDir string) (*Post, error) {
+	post := Post{ //nolint:exhaustruct
+		title: item.Title,
+	}
+	converter := md.NewConverter("", true, nil)
+
+	body, err := converter.ConvertString(item.Description)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	post.body = body
+
+	if err = post.SetDate(item.Published); err != nil {
+		return nil, err
+	}
+
+	post.FindAttachments(item)
+	post.FetchAttachments(downloadDir)
+
+	if item.Extensions["letterboxd"] != nil {
+		post.title, *post.date, err = handleLetterboxdExtensions(item, post.title, *post.date)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &post, nil
 }
 
 func (p *Post) SetDate(date string) error {

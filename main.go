@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/benjamineskola/rss2dayone/cache"
 	"github.com/mmcdole/gofeed"
 )
@@ -69,33 +68,12 @@ func main() {
 }
 
 func processItem(item *gofeed.Item, downloadDir string) error {
-	post := Post{} //nolint:exhaustruct
-
-	converter := md.NewConverter("", true, nil)
-
-	body, err := converter.ConvertString(item.Description)
+	post, err := NewPost(item, downloadDir)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	post.title = item.Title
-	post.body = body
-
-	if err = post.SetDate(item.Published); err != nil {
 		return err
 	}
 
-	post.FindAttachments(item)
-	post.FetchAttachments(downloadDir)
-
-	if item.Extensions["letterboxd"] != nil {
-		post.title, *post.date, err = handleLetterboxdExtensions(item, post.title, *post.date)
-		if err != nil {
-			return err
-		}
-	}
-
-	if err = invokeDayOne(&post, os.Args[2], os.Args[3:]); err != nil {
+	if err := invokeDayOne(post, os.Args[2], os.Args[3:]); err != nil {
 		return fmt.Errorf("failed invocation of dayone2: %w", err)
 	}
 
