@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
@@ -80,6 +78,7 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 		log.Fatal(err)
 	}
 
+	post.title = item.Title
 	post.body = body
 
 	if err = post.SetDate(item.Published); err != nil {
@@ -87,22 +86,7 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 	}
 
 	post.FindAttachments(item)
-
-	attachmentFiles := []string{}
-
-	for url := range *post.AttachmentUrls {
-		file, err := fetchAttachment(url, downloadDir)
-		if err != nil {
-			log.Print(err)
-
-			continue
-		}
-
-		attachmentFiles = append(attachmentFiles, file.Name())
-		post.body = strings.ReplaceAll(post.body, "![]("+url+")", "")
-	}
-
-	post.title = item.Title
+	post.FetchAttachments(downloadDir)
 
 	if item.Extensions["letterboxd"] != nil {
 		post.title, *post.date, err = handleLetterboxdExtensions(item, post.title, *post.date)
@@ -111,44 +95,11 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 		}
 	}
 
-	if err = invokeDayOne(post.title, post.body, os.Args[2], os.Args[3:], *post.date, attachmentFiles); err != nil {
+	if err = invokeDayOne(post.title, post.body, os.Args[2], os.Args[3:], *post.date, *post.attachmentFiles); err != nil {
 		return fmt.Errorf("failed invocation of dayone2: %w", err)
 	}
 
 	return nil
-}
-
-func fetchAttachment(url, downloadDir string) (*os.File, error) {
-	resp, err := http.Get(url) //nolint:gosec,noctx
-	if err != nil {
-		return nil, fmt.Errorf("error downloading attachment: %w", err)
-	}
-
-	fileName := strings.ReplaceAll(url, "/", "-")
-	fileName = strings.ReplaceAll(fileName, ":", "-")
-	fileName, _, _ = strings.Cut(fileName, "?")
-
-	if !(strings.HasSuffix(fileName, ".jpg") ||
-		strings.HasSuffix(fileName, ".jpeg") ||
-		strings.HasSuffix(fileName, ".png")) {
-		fileName += ".jpg" // Not sure that Day One actually cares that this is right, but there has to be one
-	}
-
-	defer resp.Body.Close()
-
-	file, err := os.Create(downloadDir + "/" + fileName)
-	if err != nil {
-		return nil, fmt.Errorf("error downloading attachment: %w", err)
-	}
-
-	defer file.Close()
-
-	_, err = io.Copy(file, resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error saving attachment file: %w", err)
-	}
-
-	return file, nil
 }
 
 func handleLetterboxdExtensions(item *gofeed.Item, title string, postTime time.Time) (string, time.Time, error) {

@@ -2,6 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/mmcdole/gofeed"
@@ -12,7 +17,8 @@ type Post struct {
 	body  string
 	date  *time.Time
 
-	AttachmentUrls *map[string]struct{}
+	attachmentUrls  *map[string]struct{}
+	attachmentFiles *[]string
 }
 
 func (p *Post) SetDate(date string) error {
@@ -31,20 +37,70 @@ func (p *Post) SetDate(date string) error {
 
 func (p *Post) FindAttachments(item *gofeed.Item) {
 	m := make(map[string]struct{})
-	p.AttachmentUrls = &m
+	p.attachmentUrls = &m
 
 	for _, enclosure := range item.Enclosures {
-		(*p.AttachmentUrls)[enclosure.URL] = struct{}{}
+		(*p.attachmentUrls)[enclosure.URL] = struct{}{}
 	}
 
 	for _, enclosure := range item.Extensions["media"]["content"] {
-		(*p.AttachmentUrls)[enclosure.Attrs["url"]] = struct{}{}
+		(*p.attachmentUrls)[enclosure.Attrs["url"]] = struct{}{}
 	}
 
 	embeddedImages := MarkdownImageRE.FindAllStringSubmatch(p.body, -1)
 	for _, match := range embeddedImages {
 		if len(match) > 1 && len(match[1]) > 0 {
-			(*p.AttachmentUrls)[match[1]] = struct{}{}
+			(*p.attachmentUrls)[match[1]] = struct{}{}
 		}
 	}
+}
+
+func (p *Post) FetchAttachments(downloadDir string) {
+	a := []string{}
+	p.attachmentFiles = &a
+
+	for url := range *p.attachmentUrls {
+		file, err := fetchAttachment(url, downloadDir)
+		if err != nil {
+			log.Print(err)
+
+			continue
+		}
+
+		*p.attachmentFiles = append(*p.attachmentFiles, file.Name())
+		p.body = strings.ReplaceAll(p.body, "![]("+url+")", "")
+	}
+}
+
+func fetchAttachment(url, downloadDir string) (*os.File, error) {
+	resp, err := http.Get(url) //nolint:gosec,noctx
+	if err != nil {
+		return nil, fmt.Errorf("error downloading attachment: %w", err)
+	}
+
+	fileName := strings.ReplaceAll(url, "/", "-")
+	fileName = strings.ReplaceAll(fileName, ":", "-")
+	fileName, _, _ = strings.Cut(fileName, "?")
+
+	if !(strings.HasSuffix(fileName, ".jpg") ||
+		strings.HasSuffix(fileName, ".jpeg") ||
+		strings.HasSuffix(fileName, ".png")) {
+		fileName += ".jpg" // Not sure that Day One actually cares that this is right, but there has to be one
+	}
+
+	defer resp.Body.Close()
+
+	file, err := os.Create(downloadDir + "/" + fileName)
+	if err != nil {
+		return nil, fmt.Errorf("error downloading attachment: %w", err)
+	}
+
+	defer file.Close()
+
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error saving attachment file: %w", err)
+	}
+
+	return file, nil
 }
