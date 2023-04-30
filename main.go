@@ -15,7 +15,7 @@ import (
 
 var MarkdownImageRE = regexp.MustCompile(`!\[\]\(([^)]+)\)`)
 
-func main() {
+func main() { //nolint:cyclop
 	if len(os.Args) < 3 {
 		fmt.Fprintf(os.Stderr, "Usage: %s <url> <journal> [tag...]\n", os.Args[0])
 		os.Exit(1)
@@ -49,8 +49,15 @@ func main() {
 			continue
 		}
 
-		if err := processItem(item, downloadDir); err != nil {
+		post, err := NewPost(item, downloadDir)
+		if err != nil {
 			log.Print(err)
+
+			continue
+		}
+
+		if err := invokeDayOne(post, os.Args[2], os.Args[3:]); err != nil {
+			log.Printf("failed invocation of dayone2: %s", err)
 
 			continue
 		}
@@ -65,19 +72,6 @@ func main() {
 			log.Panic("Failed to save seen items cache: ", err)
 		}
 	}
-}
-
-func processItem(item *gofeed.Item, downloadDir string) error {
-	post, err := NewPost(item, downloadDir)
-	if err != nil {
-		return err
-	}
-
-	if err := invokeDayOne(post, os.Args[2], os.Args[3:]); err != nil {
-		return fmt.Errorf("failed invocation of dayone2: %w", err)
-	}
-
-	return nil
 }
 
 func handleLetterboxdExtensions(item *gofeed.Item, title string, postTime time.Time) (string, time.Time, error) {
