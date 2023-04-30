@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/benjamineskola/rss2dayone/cache"
 	"github.com/mmcdole/gofeed"
@@ -69,26 +68,6 @@ func main() { //nolint:cyclop
 			log.Panic("Failed to save seen items cache: ", err)
 		}
 	}
-}
-
-func handleLetterboxdExtensions(item *gofeed.Item, title string, postTime time.Time) (string, time.Time, error) {
-	if len(item.Extensions["letterboxd"]["filmTitle"]) > 0 &&
-		len(item.Extensions["letterboxd"]["filmYear"]) > 0 {
-		title = fmt.Sprintf("%s (%s)",
-			item.Extensions["letterboxd"]["filmTitle"][0].Value,
-			item.Extensions["letterboxd"]["filmYear"][0].Value)
-	}
-
-	if len(item.Extensions["letterboxd"]["watchedDate"]) > 0 {
-		var err error
-
-		postTime, err = time.Parse("2006-01-02", item.Extensions["letterboxd"]["watchedDate"][0].Value)
-		if err != nil {
-			return "", time.Time{}, fmt.Errorf("could not parse time of %s: %w", item.GUID, err)
-		}
-	}
-
-	return title, postTime, nil
 }
 
 func invokeDayOne(post *Post, journal string, tags []string) error {

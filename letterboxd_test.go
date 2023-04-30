@@ -11,7 +11,7 @@ import (
 func TestLetterboxdExtensions(t *testing.T) { //nolint:funlen
 	t.Parallel()
 
-	now := time.Now()
+	now := time.Now().Round(time.Second)
 
 	testCases := []struct {
 		name      string
@@ -91,14 +91,16 @@ func TestLetterboxdExtensions(t *testing.T) { //nolint:funlen
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotTitle, gotDate, _ := handleLetterboxdExtensions(tc.input, "Original Title", now)
+			post := Post{title: "Original Title"} //nolint:exhaustruct
+			_ = post.SetDate(now.Format(time.RFC3339))
+			_ = post.handleLetterboxdExtensions(tc.input)
 
-			if gotTitle != tc.wantTitle {
-				t.Errorf("got %q want %q", gotTitle, tc.wantTitle)
+			if post.title != tc.wantTitle {
+				t.Errorf("got %q want %q", post.title, tc.wantTitle)
 			}
 
-			if gotDate != tc.wantDate {
-				t.Errorf("got %q want %q", gotDate, tc.wantDate)
+			if *post.date != tc.wantDate {
+				t.Errorf("got %q want %q", post.date, tc.wantDate)
 			}
 		})
 	}
