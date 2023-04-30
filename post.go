@@ -160,3 +160,19 @@ func (p *Post) handleLetterboxdExtensions() error {
 
 	return nil
 }
+
+func (p *Post) Render() string {
+	rendered := ""
+
+	if len(p.title) > 0 {
+		rendered += "# " + p.title + "\n"
+	}
+
+	if len(*p.AttachmentFiles) > 0 {
+		rendered += "[{attachment}]\n"
+	}
+
+	rendered += p.body
+
+	return rendered
+}

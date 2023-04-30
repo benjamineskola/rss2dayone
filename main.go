@@ -80,19 +80,8 @@ func invokeDayOne(post *Post, journal string, tags []string) error {
 		defer os.Remove(i)
 	}
 
-	body := ""
-	if len(post.title) > 0 {
-		body += "# " + post.title + "\n"
-	}
-
-	if len(*post.AttachmentFiles) > 0 {
-		body += "[{attachment}]\n"
-	}
-
-	body += post.body
-
 	cmd := exec.Command("dayone2", cmdArgs...)
-	cmd.Stdin = strings.NewReader(body)
+	cmd.Stdin = strings.NewReader(post.Render())
 
 	var out strings.Builder
 	cmd.Stdout = &out
