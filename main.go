@@ -71,22 +71,26 @@ func main() {
 }
 
 func processItem(item *gofeed.Item, downloadDir string) error {
+	post := Post{} //nolint:exhaustruct
+
 	converter := md.NewConverter("", true, nil)
 
-	markdown, err := converter.ConvertString(item.Description)
+	body, err := converter.ConvertString(item.Description)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	postTime, err := time.Parse("Mon, _2 Jan 2006 15:04:05 -0700", item.Published)
+	date, err := time.Parse("Mon, _2 Jan 2006 15:04:05 -0700", item.Published)
 	if err != nil {
-		postTime, err = time.Parse(time.RFC3339, item.Published)
+		date, err = time.Parse(time.RFC3339, item.Published)
 		if err != nil {
 			log.Fatalf("Could not parse time of %s: %s", item.GUID, err)
 		}
 	}
 
-	attachmentUrls := findAttachments(item, markdown)
+	post.date = &date
+
+	attachmentUrls := findAttachments(item, body)
 
 	attachmentFiles := []string{}
 
@@ -99,19 +103,20 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 		}
 
 		attachmentFiles = append(attachmentFiles, file.Name())
-		markdown = strings.ReplaceAll(markdown, "![]("+url+")", "")
+		body = strings.ReplaceAll(body, "![]("+url+")", "")
 	}
 
-	title := item.Title
+	post.title = item.Title
+	post.body = body
 
 	if item.Extensions["letterboxd"] != nil {
-		title, postTime, err = handleLetterboxdExtensions(item, title, postTime)
+		post.title, *post.date, err = handleLetterboxdExtensions(item, post.title, *post.date)
 		if err != nil {
 			return err
 		}
 	}
 
-	if err = invokeDayOne(title, markdown, os.Args[2], os.Args[3:], postTime, attachmentFiles); err != nil {
+	if err = invokeDayOne(post.title, body, os.Args[2], os.Args[3:], *post.date, attachmentFiles); err != nil {
 		return fmt.Errorf("failed invocation of dayone2: %w", err)
 	}
 
