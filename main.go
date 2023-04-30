@@ -83,18 +83,15 @@ func invokeDayOne(post *Post, journal string, tags []string) error {
 	cmd := exec.Command("dayone2", cmdArgs...)
 	cmd.Stdin = strings.NewReader(post.Render())
 
-	var out strings.Builder
-	cmd.Stdout = &out
+	var stdout strings.Builder
+	cmd.Stdout = &stdout
 
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to execute dayone2: %w", err)
+		return fmt.Errorf("failed to execute dayone2: %w\nstdout: %s\nstderr: %s", err, stdout.String(), stderr.String())
 	}
-
-	log.Print(out.String())
-	log.Print(stderr.String())
 
 	return nil
 }
