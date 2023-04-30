@@ -6,12 +6,15 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/mmcdole/gofeed"
 )
+
+var MarkdownImageRE = regexp.MustCompile(`!\[\]\(([^)]+)\)`)
 
 type Post struct {
 	title string

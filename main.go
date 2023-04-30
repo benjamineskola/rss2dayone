@@ -5,15 +5,12 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/benjamineskola/rss2dayone/cache"
 	"github.com/mmcdole/gofeed"
 )
-
-var MarkdownImageRE = regexp.MustCompile(`!\[\]\(([^)]+)\)`)
 
 func main() { //nolint:cyclop
 	if len(os.Args) < 3 {
