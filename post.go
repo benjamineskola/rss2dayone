@@ -21,13 +21,16 @@ type Post struct {
 	body  string
 	date  *time.Time
 
+	feedItem *gofeed.Item
+
 	attachmentUrls  *map[string]struct{}
 	AttachmentFiles *[]string
 }
 
 func NewPost(item *gofeed.Item, downloadDir string) (*Post, error) {
 	post := Post{ //nolint:exhaustruct
-		title: item.Title,
+		title:    item.Title,
+		feedItem: item,
 	}
 	converter := md.NewConverter("", true, nil)
 
@@ -42,11 +45,11 @@ func NewPost(item *gofeed.Item, downloadDir string) (*Post, error) {
 		return nil, err
 	}
 
-	post.FindAttachments(item)
+	post.FindAttachments()
 	post.FetchAttachments(downloadDir)
 
 	if item.Extensions["letterboxd"] != nil {
-		if err := post.handleLetterboxdExtensions(item); err != nil {
+		if err := post.handleLetterboxdExtensions(); err != nil {
 			return nil, err
 		}
 	}
@@ -68,15 +71,15 @@ func (p *Post) SetDate(date string) error {
 	return nil
 }
 
-func (p *Post) FindAttachments(item *gofeed.Item) {
+func (p *Post) FindAttachments() {
 	m := make(map[string]struct{})
 	p.attachmentUrls = &m
 
-	for _, enclosure := range item.Enclosures {
+	for _, enclosure := range p.feedItem.Enclosures {
 		(*p.attachmentUrls)[enclosure.URL] = struct{}{}
 	}
 
-	for _, enclosure := range item.Extensions["media"]["content"] {
+	for _, enclosure := range p.feedItem.Extensions["media"]["content"] {
 		(*p.attachmentUrls)[enclosure.Attrs["url"]] = struct{}{}
 	}
 
@@ -138,20 +141,20 @@ func fetchAttachment(url, downloadDir string) (*os.File, error) {
 	return file, nil
 }
 
-func (p *Post) handleLetterboxdExtensions(item *gofeed.Item) error {
-	if len(item.Extensions["letterboxd"]["filmTitle"]) > 0 &&
-		len(item.Extensions["letterboxd"]["filmYear"]) > 0 {
+func (p *Post) handleLetterboxdExtensions() error {
+	if len(p.feedItem.Extensions["letterboxd"]["filmTitle"]) > 0 &&
+		len(p.feedItem.Extensions["letterboxd"]["filmYear"]) > 0 {
 		p.title = fmt.Sprintf("%s (%s)",
-			item.Extensions["letterboxd"]["filmTitle"][0].Value,
-			item.Extensions["letterboxd"]["filmYear"][0].Value)
+			p.feedItem.Extensions["letterboxd"]["filmTitle"][0].Value,
+			p.feedItem.Extensions["letterboxd"]["filmYear"][0].Value)
 	}
 
-	if len(item.Extensions["letterboxd"]["watchedDate"]) > 0 {
+	if len(p.feedItem.Extensions["letterboxd"]["watchedDate"]) > 0 {
 		var err error
 
-		*p.date, err = time.Parse("2006-01-02", item.Extensions["letterboxd"]["watchedDate"][0].Value)
+		*p.date, err = time.Parse("2006-01-02", p.feedItem.Extensions["letterboxd"]["watchedDate"][0].Value)
 		if err != nil {
-			return fmt.Errorf("could not parse time of %s: %w", item.GUID, err)
+			return fmt.Errorf("could not parse time of %s: %w", p.feedItem.GUID, err)
 		}
 	}
 

@@ -91,9 +91,9 @@ func TestLetterboxdExtensions(t *testing.T) { //nolint:funlen
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			post := Post{title: "Original Title"} //nolint:exhaustruct
+			post := Post{title: "Original Title", feedItem: tc.input} //nolint:exhaustruct
 			_ = post.SetDate(now.Format(time.RFC3339))
-			_ = post.handleLetterboxdExtensions(tc.input)
+			_ = post.handleLetterboxdExtensions()
 
 			if post.title != tc.wantTitle {
 				t.Errorf("got %q want %q", post.title, tc.wantTitle)
