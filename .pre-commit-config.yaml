@@ -12,3 +12,9 @@ repos:
         language: system
         types: [go]
         pass_filenames: false
+      - id: gotest
+        name: go test
+        entry: find . -maxdepth 1 -type d -iname '[a-z]*' -exec go test -cover . {} +
+        language: system
+        types: [go]
+        pass_filenames: false
