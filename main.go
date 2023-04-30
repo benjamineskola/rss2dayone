@@ -80,15 +80,9 @@ func processItem(item *gofeed.Item, downloadDir string) error {
 		log.Fatal(err)
 	}
 
-	date, err := time.Parse("Mon, _2 Jan 2006 15:04:05 -0700", item.Published)
-	if err != nil {
-		date, err = time.Parse(time.RFC3339, item.Published)
-		if err != nil {
-			log.Fatalf("Could not parse time of %s: %s", item.GUID, err)
-		}
+	if err = post.SetDate(item.Published); err != nil {
+		return err
 	}
-
-	post.date = &date
 
 	attachmentUrls := findAttachments(item, body)
 
