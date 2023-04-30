@@ -99,7 +99,7 @@ func TestLetterboxdExtensions(t *testing.T) { //nolint:funlen
 				t.Errorf("got %q want %q", post.title, tc.wantTitle)
 			}
 
-			if *post.date != tc.wantDate {
+			if !post.date.Equal(tc.wantDate) {
 				t.Errorf("got %q want %q", post.date, tc.wantDate)
 			}
 		})
