@@ -9,16 +9,21 @@ import (
 	"github.com/adrg/xdg"
 )
 
-var CACHEFILE = filepath.Join(xdg.CacheHome, "rss2dayone.json") //nolint:gochecknoglobals
-
 type Cache struct {
-	ids *map[string]struct{}
+	ids  *map[string]struct{}
+	file string
 }
 
 func Init() (*Cache, error) {
 	idList := make([]string, 0)
+	idSet := make(map[string]struct{})
 
-	data, err := os.ReadFile(CACHEFILE)
+	cache := Cache{
+		ids:  &idSet,
+		file: filepath.Join(xdg.CacheHome, "rss2dayone.json"),
+	}
+
+	data, err := os.ReadFile(cache.file)
 	if err == nil {
 		err = json.Unmarshal(data, &idList)
 		if err != nil {
@@ -26,12 +31,11 @@ func Init() (*Cache, error) {
 		}
 	}
 
-	ids := make(map[string]struct{})
 	for _, i := range idList {
-		ids[i] = struct{}{}
+		(*cache.ids)[i] = struct{}{}
 	}
 
-	return &Cache{ids: &ids}, nil
+	return &cache, nil
 }
 
 func (cache *Cache) Add(id string) {
@@ -55,7 +59,7 @@ func (cache *Cache) Save() error {
 		return fmt.Errorf("error serialising seen data: %w", err)
 	}
 
-	if err = os.WriteFile(CACHEFILE, data, 0o600); err != nil {
+	if err = os.WriteFile(cache.file, data, 0o600); err != nil {
 		return fmt.Errorf("error writing seen data to file: %w", err)
 	}
 
