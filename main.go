@@ -11,7 +11,7 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
-func main() { //nolint:cyclop
+func main() {
 	if len(os.Args) < 3 {
 		fmt.Fprintf(os.Stderr, "Usage: %s <url> <journal> [tag...]\n", os.Args[0])
 		os.Exit(1)
@@ -26,13 +26,6 @@ func main() { //nolint:cyclop
 		log.Fatal(err)
 	}
 
-	downloadDir, err := os.MkdirTemp("", "rss2dayone-")
-	if err != nil {
-		log.Fatalf("Could not create temporary directory: %s", err)
-	}
-
-	defer os.Remove(downloadDir)
-
 	processedAny := false
 
 	processed, err := cache.Init()
@@ -45,7 +38,7 @@ func main() { //nolint:cyclop
 			continue
 		}
 
-		post, err := NewPost(item, downloadDir)
+		post, err := NewPost(item)
 		if err != nil {
 			log.Print(err)
 
@@ -73,6 +66,15 @@ func main() { //nolint:cyclop
 func invokeDayOne(post *Post, journal string, tags []string) error {
 	cmdArgs := []string{"new", "--journal", journal, "--isoDate", post.date.Format("2006-01-02T15:04:05"), "--tags"}
 	cmdArgs = append(cmdArgs, tags...)
+
+	downloadDir, err := os.MkdirTemp("", "rss2dayone-")
+	if err != nil {
+		log.Fatalf("Could not create temporary directory: %s", err)
+	}
+
+	defer os.Remove(downloadDir)
+
+	post.FetchAttachments(downloadDir)
 
 	for _, i := range *post.AttachmentFiles {
 		cmdArgs = append(cmdArgs, "-a", i)

@@ -27,7 +27,7 @@ type Post struct {
 	AttachmentFiles *[]string
 }
 
-func NewPost(item *gofeed.Item, downloadDir string) (*Post, error) {
+func NewPost(item *gofeed.Item) (*Post, error) {
 	post := Post{ //nolint:exhaustruct
 		title:    item.Title,
 		feedItem: item,
@@ -46,7 +46,6 @@ func NewPost(item *gofeed.Item, downloadDir string) (*Post, error) {
 	}
 
 	post.FindAttachments()
-	post.FetchAttachments(downloadDir)
 
 	if item.Extensions["letterboxd"] != nil {
 		if err := post.handleLetterboxdExtensions(); err != nil {
