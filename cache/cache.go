@@ -7,8 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-
-	"github.com/adrg/xdg"
 )
 
 type Cache struct {
@@ -17,7 +15,12 @@ type Cache struct {
 }
 
 func Init() (*Cache, error) {
-	file, _ := os.OpenFile(filepath.Join(xdg.CacheHome, "rss2dayone.json"), os.O_RDWR|os.O_CREATE, 0o644)
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return nil, fmt.Errorf("cannot identify user cache dir: %w", err)
+	}
+
+	file, _ := os.OpenFile(filepath.Join(cacheDir, "rss2dayone.json"), os.O_RDWR|os.O_CREATE, 0o644)
 
 	return InitWithFile(file)
 }
