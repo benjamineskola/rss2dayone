@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -125,7 +126,7 @@ func fetchAttachment(url, downloadDir string) (*os.File, error) {
 
 	defer resp.Body.Close()
 
-	file, err := os.Create(downloadDir + "/" + fileName)
+	file, err := os.Create(filepath.Join(downloadDir, fileName))
 	if err != nil {
 		return nil, fmt.Errorf("error downloading attachment: %w", err)
 	}
