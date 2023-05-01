@@ -3,6 +3,8 @@ package cache //nolint:testpackage
 import (
 	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type TestFile struct {
@@ -33,15 +35,17 @@ func TestCacheLoad(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name            string
-		cacheData       string
-		expectToBeEmpty bool
-		// expectedOutput map[string]struct{}
+		name           string
+		cacheData      string
+		expectedOutput map[string]struct{}
 	}{
-		{name: "empty file", cacheData: "", expectToBeEmpty: true},
-		{name: "empty list", cacheData: "[]", expectToBeEmpty: true},
-		{name: "file with one string", cacheData: `["foo"]`, expectToBeEmpty: false},
-		{name: "file with several strings", cacheData: `["other", "foo"]`, expectToBeEmpty: false},
+		{name: "empty file", cacheData: "", expectedOutput: map[string]struct{}{}},
+		{name: "empty list", cacheData: "[]", expectedOutput: map[string]struct{}{}},
+		{name: "file with one string", cacheData: `["foo"]`, expectedOutput: map[string]struct{}{"foo": {}}},
+		{
+			name: "file with several strings", cacheData: `["other", "foo"]`,
+			expectedOutput: map[string]struct{}{"foo": {}, "other": {}},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -53,21 +57,8 @@ func TestCacheLoad(t *testing.T) {
 			cacheBuffer := NewTestFile([]byte(tc.cacheData))
 
 			cache, err := InitWithFile(cacheBuffer)
-			if err != nil {
-				t.Errorf("failed to initialise cache: %s", err)
-			}
-
-			if tc.expectToBeEmpty {
-				if len(*cache.ids) > 0 {
-					t.Errorf("got %d want 0", len(*cache.ids))
-				}
-			} else {
-				if !cache.Contains("foo") {
-					t.Errorf("should contain \"foo\": %q", *cache.ids)
-				}
-				if cache.Contains("bar") {
-					t.Errorf("should not contain \"bar\": %q", *cache.ids)
-				}
+			if assert.NoError(t, err) {
+				assert.Equal(t, tc.expectedOutput, *cache.ids)
 			}
 		})
 	}
@@ -79,30 +70,18 @@ func TestCacheAddSave(t *testing.T) {
 	cacheBuffer := NewTestFile([]byte{})
 
 	cache, err := InitWithFile(cacheBuffer)
-	if err != nil {
-		t.Errorf("failed to initialise cache: %s", err)
-	}
 
-	if cache.Contains("foo") {
-		t.Errorf("should not contain \"foo\": %q", *cache.ids)
-	}
+	assert.NoError(t, err)
+
+	assert.False(t, cache.Contains("foo"))
 
 	cache.Add("foo")
 
-	if !cache.Contains("foo") {
-		t.Errorf("should contain \"foo\": %q", *cache.ids)
-	}
+	assert.True(t, cache.Contains("foo"))
 
-	if string(cacheBuffer.data) != "" {
-		t.Errorf("should be empty: %q", cacheBuffer.data)
-	}
+	assert.Equal(t, []byte{}, cacheBuffer.data)
 
-	err = cache.Save()
-	if err != nil {
-		t.Errorf("error saving: %s", err)
-	}
+	assert.NoError(t, cache.Save())
 
-	if string(cacheBuffer.data) != `["foo"]` {
-		t.Errorf("should contain \"foo\": %q", cacheBuffer.data)
-	}
+	assert.Equal(t, []byte(`["foo"]`), cacheBuffer.data)
 }

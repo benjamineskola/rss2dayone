@@ -2,6 +2,8 @@ package main
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRender(t *testing.T) {
@@ -50,9 +52,7 @@ func TestRender(t *testing.T) {
 				post.AttachmentFiles = tc.attachments
 			}
 
-			if actualOutput := post.Render(); actualOutput != tc.expectedOutput {
-				t.Errorf("got %q want %q", actualOutput, tc.expectedOutput)
-			}
+			assert.Equal(t, tc.expectedOutput, post.Render())
 		})
 	}
 }

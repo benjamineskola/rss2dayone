@@ -6,6 +6,7 @@ import (
 
 	"github.com/mmcdole/gofeed"
 	ext "github.com/mmcdole/gofeed/extensions"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLetterboxdExtensions(t *testing.T) { //nolint:funlen
@@ -95,13 +96,8 @@ func TestLetterboxdExtensions(t *testing.T) { //nolint:funlen
 			_ = post.SetDate(now.Format(time.RFC3339))
 			_ = post.handleLetterboxdExtensions()
 
-			if post.title != tc.wantTitle {
-				t.Errorf("got %q want %q", post.title, tc.wantTitle)
-			}
-
-			if !post.date.Equal(tc.wantDate) {
-				t.Errorf("got %q want %q", post.date, tc.wantDate)
-			}
+			assert.Equal(t, tc.wantTitle, post.title)
+			assert.Equal(t, tc.wantDate, *post.date)
 		})
 	}
 }
