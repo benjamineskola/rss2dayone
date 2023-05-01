@@ -1,8 +1,10 @@
 package cache
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -11,14 +13,16 @@ import (
 
 type Cache struct {
 	ids  *map[string]struct{}
-	file string
+	file io.ReadWriteSeeker
 }
 
 func Init() (*Cache, error) {
-	return InitWithPath(filepath.Join(xdg.CacheHome, "rss2dayone.json"))
+	file, _ := os.OpenFile(filepath.Join(xdg.CacheHome, "rss2dayone.json"), os.O_RDWR|os.O_CREATE, 0o644)
+
+	return InitWithFile(file)
 }
 
-func InitWithPath(file string) (*Cache, error) {
+func InitWithFile(file io.ReadWriteSeeker) (*Cache, error) {
 	idList := make([]string, 0)
 	idSet := make(map[string]struct{})
 
@@ -27,12 +31,17 @@ func InitWithPath(file string) (*Cache, error) {
 		file: file,
 	}
 
-	data, err := os.ReadFile(cache.file)
-	if err == nil {
-		err = json.Unmarshal(data, &idList)
-		if err != nil {
-			return nil, fmt.Errorf("error decoding processed map: %w", err)
-		}
+	var data bytes.Buffer
+	if _, err := io.Copy(&data, cache.file); err != nil {
+		return nil, fmt.Errorf("error loading data: %w", err)
+	}
+
+	if data.Len() == 0 {
+		return &cache, nil
+	}
+
+	if err := json.Unmarshal(data.Bytes(), &idList); err != nil {
+		return nil, fmt.Errorf("error decoding processed map: %w", err)
 	}
 
 	for _, i := range idList {
@@ -58,13 +67,19 @@ func (cache *Cache) Save() error {
 		idList = append(idList, id)
 	}
 
-	data, err := json.MarshalIndent(idList, "", "  ")
+	data, err := json.Marshal(idList)
 	if err != nil {
 		return fmt.Errorf("error serialising seen data: %w", err)
 	}
 
-	if err = os.WriteFile(cache.file, data, 0o600); err != nil {
-		return fmt.Errorf("error writing seen data to file: %w", err)
+	_, err = cache.file.Seek(0, io.SeekStart)
+	if err != nil {
+		return fmt.Errorf("error writing seen data: %w", err)
+	}
+
+	_, err = cache.file.Write(data)
+	if err != nil {
+		return fmt.Errorf("error writing seen data: %w", err)
 	}
 
 	return nil
