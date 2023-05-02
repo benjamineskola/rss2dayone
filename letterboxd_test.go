@@ -12,7 +12,7 @@ import (
 func TestLetterboxdExtensions(t *testing.T) { //nolint:funlen
 	t.Parallel()
 
-	now := time.Now().Round(time.Second)
+	now := time.Now().UTC().Round(time.Second)
 
 	testCases := []struct {
 		name      string
