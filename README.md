@@ -17,7 +17,23 @@ Requires the Day One app to be installed, and the command-line tool `dayone2` to
 ## Usage
 
 ```sh
-rss2dayone <url> <journal> [tag...]
+rss2dayone
+```
+
+## Configuration
+
+The configuration file lives in `$XDG_CONFIG_HOME/rss2dayone.toml`, which is by default `$HOME/.config/rss2dayone.toml`. The format is as follows:
+
+```toml
+[[feed]]
+url = "http://example.com/feed.xml"
+journal = "Journal"
+tags = ["example"]
+
+[[feed]]
+url = "https://anotherexample.net/news.rss"
+journal = "Another Journal"
+# tags are optional
 ```
 
 ## Features in progress/done
