@@ -5,27 +5,47 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
+	"github.com/BurntSushi/toml"
+	"github.com/adrg/xdg"
 	"github.com/benjamineskola/rss2dayone/cache"
 	"github.com/mmcdole/gofeed"
 )
 
+type Feed struct {
+	URL     string
+	Journal string
+	Tags    []string
+}
+
+type Config struct {
+	Feeds []Feed `toml:"feed"`
+}
+
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <url> <journal> [tag...]\n", os.Args[0])
-		os.Exit(1)
+	configPath := filepath.Join(xdg.ConfigHome, "rss2dayone.toml")
+
+	configFile, err := os.Open(configPath)
+	if err != nil {
+		log.Panicf("cannot read config file %s: %s", configPath, err)
 	}
 
-	feedURL := os.Args[1]
+	var config Config
+	if _, err := toml.NewDecoder(configFile).Decode(&config); err != nil {
+		log.Panicf("error decoding TOML: %s", err)
+	}
 
 	processed, err := cache.Init()
 	if err != nil {
 		log.Panic("Could not load seen items cache: ", err)
 	}
 
-	if err = processFeed(feedURL, os.Args[2], os.Args[3:], processed); err != nil {
-		log.Print(err)
+	for _, feed := range config.Feeds {
+		if err = processFeed(feed.URL, feed.Journal, feed.Tags, processed); err != nil {
+			log.Print(err)
+		}
 	}
 
 	if err = processed.Save(); err != nil {
