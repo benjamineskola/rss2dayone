@@ -17,18 +17,28 @@ func main() {
 		os.Exit(1)
 	}
 
-	fp := gofeed.NewParser()
-
 	feedURL := os.Args[1]
-
-	feed, err := fp.ParseURL(feedURL)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	processed, err := cache.Init()
 	if err != nil {
 		log.Panic("Could not load seen items cache: ", err)
+	}
+
+	if err = processFeed(feedURL, os.Args[2], os.Args[3:], processed); err != nil {
+		log.Print(err)
+	}
+
+	if err = processed.Save(); err != nil {
+		log.Panic("Failed to save seen items cache: ", err)
+	}
+}
+
+func processFeed(feedURL, journal string, tags []string, processed *cache.Cache) error {
+	fp := gofeed.NewParser()
+
+	feed, err := fp.ParseURL(feedURL)
+	if err != nil {
+		return fmt.Errorf("failed to process feed %s: %w", feedURL, err)
 	}
 
 	for _, item := range feed.Items {
@@ -43,7 +53,7 @@ func main() {
 			continue
 		}
 
-		if err := invokeDayOne(post, os.Args[2], os.Args[3:]); err != nil {
+		if err := invokeDayOne(post, journal, tags); err != nil {
 			log.Printf("failed invocation of dayone2: %s", err)
 
 			continue
@@ -52,9 +62,7 @@ func main() {
 		processed.Add(item.GUID)
 	}
 
-	if err = processed.Save(); err != nil {
-		log.Panic("Failed to save seen items cache: ", err)
-	}
+	return nil
 }
 
 func invokeDayOne(post *Post, journal string, tags []string) error {
