@@ -26,8 +26,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	processedAny := false
-
 	processed, err := cache.Init()
 	if err != nil {
 		log.Panic("Could not load seen items cache: ", err)
@@ -52,14 +50,10 @@ func main() {
 		}
 
 		processed.Add(item.GUID)
-
-		processedAny = true
 	}
 
-	if processedAny {
-		if err = processed.Save(); err != nil {
-			log.Panic("Failed to save seen items cache: ", err)
-		}
+	if err = processed.Save(); err != nil {
+		log.Panic("Failed to save seen items cache: ", err)
 	}
 }
 

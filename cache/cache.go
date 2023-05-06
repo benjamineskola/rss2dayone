@@ -10,8 +10,9 @@ import (
 )
 
 type Cache struct {
-	ids  *map[string]struct{}
-	file io.ReadWriteSeeker
+	ids      *map[string]struct{}
+	file     io.ReadWriteSeeker
+	modified bool
 }
 
 func Init() (*Cache, error) {
@@ -30,8 +31,9 @@ func InitWithFile(file io.ReadWriteSeeker) (*Cache, error) {
 	idSet := make(map[string]struct{})
 
 	cache := Cache{
-		ids:  &idSet,
-		file: file,
+		ids:      &idSet,
+		file:     file,
+		modified: false,
 	}
 
 	var data bytes.Buffer
@@ -55,6 +57,10 @@ func InitWithFile(file io.ReadWriteSeeker) (*Cache, error) {
 }
 
 func (cache *Cache) Add(id string) {
+	if !cache.Contains(id) {
+		cache.modified = true
+	}
+
 	(*cache.ids)[id] = struct{}{}
 }
 
@@ -65,6 +71,10 @@ func (cache *Cache) Contains(id string) bool {
 }
 
 func (cache *Cache) Save() error {
+	if !cache.modified {
+		return nil
+	}
+
 	idList := make([]string, 0)
 	for id := range *cache.ids {
 		idList = append(idList, id)
