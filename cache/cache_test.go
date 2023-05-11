@@ -56,7 +56,7 @@ func TestCacheLoad(t *testing.T) {
 
 			cacheBuffer := NewTestFile([]byte(tc.cacheData))
 
-			cache, err := InitWithFile(cacheBuffer)
+			cache, err := InitWithFile(cacheBuffer, "")
 			if assert.NoError(t, err) {
 				assert.Equal(t, tc.expectedOutput, *cache.ids)
 			}
@@ -69,7 +69,7 @@ func TestCacheAddSave(t *testing.T) {
 
 	cacheBuffer := NewTestFile([]byte{})
 
-	cache, err := InitWithFile(cacheBuffer)
+	cache, err := InitWithFile(cacheBuffer, "")
 
 	assert.NoError(t, err)
 

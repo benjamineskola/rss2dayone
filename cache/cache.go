@@ -11,6 +11,7 @@ import (
 
 type Cache struct {
 	ids      *map[string]struct{}
+	path     string
 	file     io.ReadWriteSeeker
 	modified bool
 }
@@ -21,17 +22,19 @@ func Init() (*Cache, error) {
 		return nil, fmt.Errorf("cannot identify user cache dir: %w", err)
 	}
 
-	file, _ := os.OpenFile(filepath.Join(cacheDir, "rss2dayone.json"), os.O_RDWR|os.O_CREATE, 0o644)
+	path := filepath.Join(cacheDir, "rss2dayone.json")
+	file, _ := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o644)
 
-	return InitWithFile(file)
+	return InitWithFile(file, path)
 }
 
-func InitWithFile(file io.ReadWriteSeeker) (*Cache, error) {
+func InitWithFile(file io.ReadWriteSeeker, path string) (*Cache, error) {
 	idList := make([]string, 0)
 	idSet := make(map[string]struct{})
 
 	cache := Cache{
 		ids:      &idSet,
+		path:     path,
 		file:     file,
 		modified: false,
 	}
@@ -88,6 +91,16 @@ func (cache *Cache) Save() error {
 	_, err = cache.file.Seek(0, io.SeekStart)
 	if err != nil {
 		return fmt.Errorf("error writing seen data: %w", err)
+	}
+
+	if cache.path != "" {
+		file, err := os.OpenFile(cache.path, os.O_TRUNC, 0)
+		if err != nil {
+			return fmt.Errorf("error truncating cache file: %w", err)
+		}
+
+		_ = file.Truncate(int64(len(data)))
+		file.Close()
 	}
 
 	_, err = cache.file.Write(data)
