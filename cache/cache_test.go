@@ -2,34 +2,11 @@ package cache //nolint:testpackage
 
 import (
 	"bytes"
+	// "os".
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-type TestFile struct {
-	data   []byte
-	buffer *bytes.Buffer
-}
-
-func NewTestFile(data []byte) *TestFile {
-	return &TestFile{data: data, buffer: bytes.NewBuffer(data)}
-}
-
-func (t *TestFile) Read(p []byte) (int, error) {
-	return t.buffer.Read(p) //nolint:wrapcheck
-}
-
-func (t *TestFile) Write(p []byte) (int, error) {
-	n, err := t.buffer.Write(p)
-	t.data = t.buffer.Bytes()
-
-	return n, err //nolint:wrapcheck
-}
-
-func (t *TestFile) Seek(offset int64, _ int) (int64, error) {
-	return offset, nil
-}
 
 func TestCacheLoad(t *testing.T) {
 	t.Parallel()
@@ -54,9 +31,9 @@ func TestCacheLoad(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			cacheBuffer := NewTestFile([]byte(tc.cacheData))
+			cacheBuffer := bytes.NewBuffer([]byte(tc.cacheData))
 
-			cache, err := InitWithFile(cacheBuffer, "")
+			cache, err := InitWithBuffer(cacheBuffer, "")
 			if assert.NoError(t, err) {
 				assert.Equal(t, tc.expectedOutput, *cache.ids)
 			}
@@ -67,9 +44,9 @@ func TestCacheLoad(t *testing.T) {
 func TestCacheAddSave(t *testing.T) {
 	t.Parallel()
 
-	cacheBuffer := NewTestFile([]byte{})
+	cacheBuffer := bytes.NewBuffer([]byte{})
 
-	cache, err := InitWithFile(cacheBuffer, "")
+	cache, err := InitWithBuffer(cacheBuffer, "")
 
 	assert.NoError(t, err)
 
@@ -79,9 +56,9 @@ func TestCacheAddSave(t *testing.T) {
 
 	assert.True(t, cache.Contains("foo"))
 
-	assert.Equal(t, []byte{}, cacheBuffer.data)
+	assert.Equal(t, []byte{}, cacheBuffer.Bytes())
 
-	assert.NoError(t, cache.Save())
+	assert.NoError(t, cache.SaveToBuffer(cacheBuffer))
 
-	assert.Equal(t, []byte(`["foo"]`), cacheBuffer.data)
+	assert.Equal(t, []byte(`["foo"]`), cacheBuffer.Bytes())
 }

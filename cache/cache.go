@@ -12,7 +12,6 @@ import (
 type Cache struct {
 	ids      *map[string]struct{}
 	path     string
-	file     io.ReadWriteSeeker
 	modified bool
 }
 
@@ -23,25 +22,26 @@ func Init() (*Cache, error) {
 	}
 
 	path := filepath.Join(cacheDir, "rss2dayone.json")
-	file, _ := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o644)
+	file, _ := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0o600)
 
-	return InitWithFile(file, path)
+	defer file.Close()
+
+	var data []byte
+	if _, err := file.Read(data); err != nil {
+		return nil, fmt.Errorf("error loading data: %w", err)
+	}
+
+	return InitWithBuffer(bytes.NewBuffer(data), path)
 }
 
-func InitWithFile(file io.ReadWriteSeeker, path string) (*Cache, error) {
+func InitWithBuffer(data *bytes.Buffer, path string) (*Cache, error) {
 	idList := make([]string, 0)
 	idSet := make(map[string]struct{})
 
 	cache := Cache{
 		ids:      &idSet,
 		path:     path,
-		file:     file,
 		modified: false,
-	}
-
-	var data bytes.Buffer
-	if _, err := io.Copy(&data, cache.file); err != nil {
-		return nil, fmt.Errorf("error loading data: %w", err)
 	}
 
 	if data.Len() == 0 {
@@ -78,6 +78,17 @@ func (cache *Cache) Save() error {
 		return nil
 	}
 
+	file, err := os.OpenFile(cache.path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		return fmt.Errorf("error opening cache file for writing: %w", err)
+	}
+
+	defer file.Close()
+
+	return cache.SaveToBuffer(file)
+}
+
+func (cache *Cache) SaveToBuffer(file io.Writer) error {
 	idList := make([]string, 0)
 	for id := range *cache.ids {
 		idList = append(idList, id)
@@ -88,23 +99,7 @@ func (cache *Cache) Save() error {
 		return fmt.Errorf("error serialising seen data: %w", err)
 	}
 
-	_, err = cache.file.Seek(0, io.SeekStart)
-	if err != nil {
-		return fmt.Errorf("error writing seen data: %w", err)
-	}
-
-	if cache.path != "" {
-		file, err := os.OpenFile(cache.path, os.O_TRUNC, 0)
-		if err != nil {
-			return fmt.Errorf("error truncating cache file: %w", err)
-		}
-
-		_ = file.Truncate(int64(len(data)))
-		file.Close()
-	}
-
-	_, err = cache.file.Write(data)
-	if err != nil {
+	if _, err = file.Write(data); err != nil {
 		return fmt.Errorf("error writing seen data: %w", err)
 	}
 
