@@ -31,7 +31,7 @@ func TestCacheLoad(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			cacheBuffer := bytes.NewBuffer([]byte(tc.cacheData))
+			cacheBuffer := bytes.NewBufferString(tc.cacheData)
 
 			cache, err := InitWithBuffer(cacheBuffer, "")
 			if assert.NoError(t, err) {
