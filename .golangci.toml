@@ -10,4 +10,6 @@ disable = [
   "scopelint",        # deprecated
   "structcheck",      # deprecated
   "varcheck",         # deprecated
+
+  "depguard", # too much work
 ]
