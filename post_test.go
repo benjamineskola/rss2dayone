@@ -21,13 +21,16 @@ func TestRender(t *testing.T) {
 		{
 			name:           "simple title-only post",
 			title:          "Hello World",
+			body:           "",
 			expectedOutput: "# Hello World\n",
+			attachments:    nil,
 		},
 		{
 			name:           "post with title and body",
 			title:          "Hello World",
 			body:           "Some content beep boop",
 			expectedOutput: "# Hello World\nSome content beep boop",
+			attachments:    nil,
 		},
 		{
 			name:           "post with attachment",
